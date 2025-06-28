@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>John Doe | Creative Developer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Custom Styles */
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e5e5;
+            overflow-x: hidden;
+            cursor: none; /* Hide the default cursor */
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Custom cursor styles */
+        .cursor {
+            position: fixed;
+            z-index: 1000;
+            pointer-events: none;
+            border-radius: 50%;
+            transition: transform 0.1s ease-out;
+            mix-blend-mode: difference;
+        }
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #fff;
+        }
+        .cursor-outline {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #fff;
+            transition: transform 0.2s ease-out, width 0.3s ease, height 0.3s ease;
+        }
+        
+        .cursor-outline.hovered {
+            transform: scale(1.5);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Section styles */
+        .section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem 2rem;
+            position: relative;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+            scroll-snap-align: start;
+        }
+
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Hero section title animation */
+        .hero-title span {
+            display: inline-block;
+            opacity: 0;
+            filter: blur(4px);
+            animation: fadeInBlur 0.8s forwards;
+        }
+        
+        #hero .hero-title-container {
+            min-height: 150px; /* Reserve space to prevent layout shift */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        @keyframes fadeInBlur {
+            to {
+                opacity: 1;
+                filter: blur(0);
+            }
+        }
+        
+        /* Project card styles */
+        .project-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            transform-style: preserve-3d;
+            transition: all 0.2s ease-out;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .project-card:hover {
+             box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        /* Skill icon style */
+        .skill-icon {
+            transition: transform 0.3s ease;
+        }
+        .skill-icon:hover {
+            transform: scale(1.2) rotate(10deg);
+        }
+        
+        /* Glow effect for headings */
+        .glow-text {
+            text-shadow: 0 0 8px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Glitch Text Styles */
+        .glitch {
+            color: #fff;
+            font-size: clamp(2rem, 10vw, 6rem);
+            white-space: nowrap;
+            font-weight: 900;
+            position: relative;
+            margin: 0 auto;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        .glitch::after,
+        .glitch::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            color: #fff;
+            background-color: #0a0a0a;
+            overflow: hidden;
+            clip-path: inset(0 0 0 0);
+        }
+
+        .glitch:not(.enable-on-hover)::after {
+            left: 2px;
+            text-shadow: -1px 0 red;
+            animation: animate-glitch 2s infinite linear alternate-reverse;
+        }
+
+        .glitch:not(.enable-on-hover)::before {
+            left: -2px;
+            text-shadow: 1px 0 cyan;
+            animation: animate-glitch 3s infinite linear alternate-reverse;
+        }
+        
+        @keyframes animate-glitch {
+            0%   { clip-path: inset(20% 0 50% 0); }
+            5%   { clip-path: inset(10% 0 60% 0); }
+            10%  { clip-path: inset(15% 0 55% 0); }
+            15%  { clip-path: inset(25% 0 35% 0); }
+            20%  { clip-path: inset(30% 0 40% 0); }
+            25%  { clip-path: inset(40% 0 20% 0); }
+            30%  { clip-path: inset(10% 0 60% 0); }
+            35%  { clip-path: inset(15% 0 55% 0); }
+            40%  { clip-path: inset(25% 0 35% 0); }
+            45%  { clip-path: inset(30% 0 40% 0); }
+            50%  { clip-path: inset(20% 0 50% 0); }
+            55%  { clip-path: inset(10% 0 60% 0); }
+            60%  { clip-path: inset(15% 0 55% 0); }
+            65%  { clip-path: inset(25% 0 35% 0); }
+            70%  { clip-path: inset(30% 0 40% 0); }
+            75%  { clip-path: inset(40% 0 20% 0); }
+            80%  { clip-path: inset(20% 0 50% 0); }
+            85%  { clip-path: inset(10% 0 60% 0); }
+            90%  { clip-path: inset(15% 0 55% 0); }
+            95%  { clip-path: inset(25% 0 35% 0); }
+            100% { clip-path: inset(30% 0 40% 0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <canvas id="bg-canvas"></canvas>
+    <div class="cursor cursor-dot"></div>
+    <div class="cursor cursor-outline"></div>
+
+    <main>
+        <section id="hero" class="section">
+            <div class="text-center">
+                <div class="hero-title-container">
+                    <h1 id="hero-title-text" class="text-5xl md:text-8xl lg:text-9xl font-black uppercase hero-title glow-text">
+                        <span style="animation-delay: 0.1s;">J</span><span style="animation-delay: 0.2s;">o</span><span style="animation-delay: 0.3s;">h</span><span style="animation-delay: 0.4s;">n</span> <span style="animation-delay: 0.5s;">D</span><span style="animation-delay: 0.6s;">o</span><span style="animation-delay: 0.7s;">e</span>
+                    </h1>
+                    <canvas id="hero-title-canvas" class="hidden"></canvas>
+                </div>
+                <p class="text-xl md:text-3xl mt-4 text-indigo-300 font-light hero-title">
+                    <span style="animation-delay: 0.8s;">C</span><span style="animation-delay: 0.9s;">r</span><span style="animation-delay: 1s;">e</span><span style="animation-delay: 1.1s;">a</span><span style="animation-delay: 1.2s;">t</span><span style="animation-delay: 1.3s;">i</span><span style="animation-delay: 1.4s;">v</span><span style="animation-delay: 1.5s;">e</span> <span style="animation-delay: 1.6s;">D</span><span style="animation-delay: 1.7s;">e</span><span style="animation-delay: 1.8s;">v</span><span style="animation-delay: 1.9s;">e</span><span style="animation-delay: 2s;">l</span><span style="animation-delay: 2.1s;">o</span><span style="animation-delay: 2.2s;">p</span><span style="animation-delay: 2.3s;">e</span><span style="animation-delay: 2.4s;">r</span>
+                </p>
+            </div>
+             <div class="absolute bottom-10 animate-bounce">
+                <svg class="w-8 h-8 text-indigo-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+        </section>
+
+        <section id="about" class="section">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-4xl md:text-6xl font-bold mb-8 glow-text">About Me</h2>
+                <p class="text-lg md:text-xl text-gray-300 leading-relaxed">
+                    I'm a passionate developer with a love for creating beautiful, intuitive, and high-performance web experiences. With a strong foundation in modern frontend technologies, I specialize in turning complex problems into elegant, user-friendly solutions. My goal is to build things that are not only functional but also delightful to use. When I'm not coding, you can find me exploring new technologies or enjoying a good cup of coffee.
+                </p>
+            </div>
+        </section>
+
+        <section id="projects" class="section">
+            <div class="container mx-auto">
+                <h2 class="text-4xl md:text-6xl font-bold text-center mb-12 glow-text">My Work</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="project-card p-6" data-tilt>
+                        <div style="transform: translateZ(20px);">
+                            <h3 class="text-2xl font-bold mb-2 text-indigo-300">Project Alpha</h3>
+                            <p class="text-gray-400 mb-4">An innovative e-commerce platform with a focus on user experience and real-time inventory management.</p>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">React</span>
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">Node.js</span>
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">MongoDB</span>
+                            </div>
+                            <a href="#" class="interactive-link font-semibold text-white hover:text-indigo-400 transition-colors duration-300">View Project &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="project-card p-6" data-tilt>
+                       <div style="transform: translateZ(20px);">
+                            <h3 class="text-2xl font-bold mb-2 text-indigo-300">Project Beta</h3>
+                            <p class="text-gray-400 mb-4">A data visualization dashboard for analyzing complex datasets, built with D3.js and a custom API.</p>
+                             <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">D3.js</span>
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">Python</span>
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">Flask</span>
+                            </div>
+                            <a href="#" class="interactive-link font-semibold text-white hover:text-indigo-400 transition-colors duration-300">View Project &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="project-card p-6" data-tilt>
+                         <div style="transform: translateZ(20px);">
+                            <h3 class="text-2xl font-bold mb-2 text-indigo-300">Project Gamma</h3>
+                            <p class="text-gray-400 mb-4">A collaborative whiteboard application using WebSockets for real-time interaction between users.</p>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">Vue.js</span>
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">WebSockets</span>
+                                <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">Express</span>
+                            </div>
+                            <a href="#" class="interactive-link font-semibold text-white hover:text-indigo-400 transition-colors duration-300">View Project &rarr;</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="skills" class="section">
+            <div class="container mx-auto text-center">
+                <h2 class="text-4xl md:text-6xl font-bold mb-12 glow-text">My Toolkit</h2>
+                <div class="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+                    <div class="skill-icon text-center">
+                        <img src="https://placehold.co/80x80/6366f1/FFFFFF?text=JS" alt="JavaScript" class="w-20 h-20 mx-auto mb-2 rounded-full">
+                        <p class="font-semibold">JavaScript</p>
+                    </div>
+                     <div class="skill-icon text-center">
+                        <img src="https://placehold.co/80x80/6366f1/FFFFFF?text=React" alt="React" class="w-20 h-20 mx-auto mb-2 rounded-full">
+                        <p class="font-semibold">React</p>
+                    </div>
+                     <div class="skill-icon text-center">
+                        <img src="https://placehold.co/80x80/6366f1/FFFFFF?text=Three" alt="Three.js" class="w-20 h-20 mx-auto mb-2 rounded-full">
+                        <p class="font-semibold">Three.js</p>
+                    </div>
+                     <div class="skill-icon text-center">
+                        <img src="https://placehold.co/80x80/6366f1/FFFFFF?text=Node" alt="Node.js" class="w-20 h-20 mx-auto mb-2 rounded-full">
+                        <p class="font-semibold">Node.js</p>
+                    </div>
+                     <div class="skill-icon text-center">
+                        <img src="https://placehold.co/80x80/6366f1/FFFFFF?text=CSS" alt="Tailwind CSS" class="w-20 h-20 mx-auto mb-2 rounded-full">
+                        <p class="font-semibold">Tailwind CSS</p>
+                    </div>
+                     <div class="skill-icon text-center">
+                        <img src="https://placehold.co/80x80/6366f1/FFFFFF?text=Figma" alt="Figma" class="w-20 h-20 mx-auto mb-2 rounded-full">
+                        <p class="font-semibold">Figma</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="section">
+            <div class="text-center">
+                <h2 class="glitch mb-8" data-text="Get In Touch">Get In Touch</h2>
+                <p class="text-lg md:text-xl text-gray-300 mb-8">I'm currently open to new opportunities. Feel free to reach out!</p>
+                <a href="mailto:hello@johndoe.com" class="interactive-link inline-block bg-indigo-600 text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105">
+                    Say Hello
+                </a>
+                <div class="flex justify-center gap-6 mt-12">
+                     <a href="#" class="interactive-link text-gray-400 hover:text-white transition-colors duration-300">
+                         <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.286 2.866 7.918 6.784 9.147.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.031-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.378.203 2.398.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.577.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd" /></svg>
+                    </a>
+                    <a href="#" class="interactive-link text-gray-400 hover:text-white transition-colors duration-300">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.71v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
+                    </a>
+                     <a href="#" class="interactive-link text-gray-400 hover:text-white transition-colors duration-300">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M19.335 5.005a.75.75 0 00-.59-.419H5.255a.75.75 0 00-.59.419l-.264.529a.75.75 0 00.126.863l6.974 6.974a.75.75 0 001.06 0l6.974-6.974a.75.75 0 00.126-.863l-.264-.529zM4.75 8.314l5.42 5.42a2.25 2.25 0 003.182 0l5.42-5.42V17.5a1.75 1.75 0 01-1.75 1.75H6.5A1.75 1.75 0 014.75 17.5V8.314z" clip-rule="evenodd" /></svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+
+        // --- FUZZY TEXT EFFECT ---
+        const createFuzzyText = (canvas, sourceElement, options = {}) => {
+            const {
+                text: forcedText, // Allow forcing text
+                color = "#fff",
+                enableHover = true,
+                baseIntensity = 0.18,
+                hoverIntensity = 0.5,
+            } = options;
+
+            let animationFrameId;
+            let isCancelled = false;
+            if (!canvas || !sourceElement) return;
+
+            const init = async () => {
+                await document.fonts.ready;
+                if (isCancelled) return;
+
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+                
+                const computedStyle = window.getComputedStyle(sourceElement);
+                const fontWeight = computedStyle.fontWeight;
+                const fontSizeStr = computedStyle.fontSize;
+                const fontFamily = computedStyle.fontFamily;
+                const textTransform = computedStyle.textTransform;
+
+                let text = forcedText || sourceElement.innerText;
+                if (textTransform === 'uppercase') {
+                    text = text.toUpperCase();
+                }
+
+                const numericFontSize = parseFloat(fontSizeStr);
+
+                const offscreen = document.createElement("canvas");
+                const offCtx = offscreen.getContext("2d");
+                if (!offCtx) return;
+
+                offCtx.font = `${fontWeight} ${fontSizeStr} ${fontFamily}`;
+                offCtx.textBaseline = "alphabetic";
+                const metrics = offCtx.measureText(text);
+
+                const actualLeft = metrics.actualBoundingBoxLeft ?? 0;
+                const actualRight = metrics.actualBoundingBoxRight ?? metrics.width;
+                const actualAscent = metrics.actualBoundingBoxAscent ?? numericFontSize;
+                const actualDescent = metrics.actualBoundingBoxDescent ?? numericFontSize * 0.2;
+                const textBoundingWidth = Math.ceil(actualLeft + actualRight);
+                const tightHeight = Math.ceil(actualAscent + actualDescent);
+
+                const extraWidthBuffer = 10;
+                const offscreenWidth = textBoundingWidth + extraWidthBuffer;
+                offscreen.width = offscreenWidth;
+                offscreen.height = tightHeight;
+
+                const xOffset = extraWidthBuffer / 2;
+                offCtx.font = `${fontWeight} ${fontSizeStr} ${fontFamily}`;
+                offCtx.textBaseline = "alphabetic";
+                offCtx.fillStyle = color;
+                offCtx.fillText(text, xOffset - actualLeft, actualAscent);
+
+                const horizontalMargin = 10;
+                const verticalMargin = 10;
+                canvas.width = offscreenWidth + horizontalMargin * 2;
+                canvas.height = tightHeight + verticalMargin * 2;
+                ctx.translate(horizontalMargin, verticalMargin);
+                
+                let isHovering = false;
+                const fuzzRange = 30;
+
+                const run = () => {
+                    if (isCancelled) return;
+                    ctx.clearRect(-fuzzRange, -fuzzRange, canvas.width + 2 * fuzzRange, canvas.height + 2 * fuzzRange);
+                    const intensity = isHovering ? hoverIntensity : baseIntensity;
+                    for (let j = 0; j < tightHeight; j++) {
+                        const dx = Math.floor(intensity * (Math.random() - 0.5) * fuzzRange);
+                        ctx.drawImage(offscreen, 0, j, offscreenWidth, 1, dx, j, offscreenWidth, 1);
+                    }
+                    animationFrameId = window.requestAnimationFrame(run);
+                };
+                run();
+
+                const handleMouseMove = (e) => {
+                    if (!enableHover) return;
+                    isHovering = true;
+                };
+                const handleMouseLeave = () => {
+                    isHovering = false;
+                };
+                if (enableHover) {
+                    canvas.addEventListener("mouseenter", handleMouseMove);
+                    canvas.addEventListener("mouseleave", handleMouseLeave);
+                }
+            };
+            init();
+        };
+
+
+        // --- 1. THREE.JS PARTICLE BACKGROUND ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        const particleCount = 5000;
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        const color = new THREE.Color();
+        for (let i = 0; i < particleCount * 3; i++) {
+            positions[i] = (Math.random() - 0.5) * 10;
+            color.set(Math.random() > 0.5 ? '#6366f1' : '#a78bfa');
+            colors[i] = color.r;
+            colors[i+1] = color.g;
+            colors[i+2] = color.b;
+        }
+        const particlesGeometry = new THREE.BufferGeometry();
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ size: 0.02, sizeAttenuation: true, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.8 });
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particles);
+        camera.position.z = 5;
+        const mouse = new THREE.Vector2();
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+        const clock = new THREE.Clock();
+        const animate = () => {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+            particles.rotation.y = elapsedTime * 0.05;
+            particles.rotation.x = elapsedTime * 0.02;
+            particles.position.x += (mouse.x * 0.2 - particles.position.x) * 0.02;
+            particles.position.y += (mouse.y * 0.2 - particles.position.y) * 0.02;
+            renderer.render(scene, camera);
+        };
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+
+
+        // --- 2. SCROLL-BASED FADE-IN ANIMATION ---
+        const sections = document.querySelectorAll('.section');
+        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.1 };
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        sections.forEach(section => { observer.observe(section); });
+
+
+        // --- 3. DYNAMIC TEXT EFFECTS ---
+        const heroSection = document.getElementById('hero');
+        if (heroSection) {
+            setTimeout(() => heroSection.classList.add('visible'), 100);
+        }
+        
+        setTimeout(() => {
+            const animatedTitle = document.getElementById('hero-title-text');
+            const fuzzyCanvas = document.getElementById('hero-title-canvas');
+            
+            if (animatedTitle && fuzzyCanvas) {
+                // Pass the source element AND the correct text directly
+                createFuzzyText(fuzzyCanvas, animatedTitle, {
+                   text: "John Doe",
+                   baseIntensity: 0.1,
+                   hoverIntensity: 0.3
+                });
+                animatedTitle.classList.add('hidden');
+                fuzzyCanvas.classList.remove('hidden');
+            }
+        }, 1600); // Wait for the initial animation to roughly finish
+
+
+        // --- 4. PROJECT CARD 3D TILT EFFECT ---
+        const cards = document.querySelectorAll('[data-tilt]');
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = (y - centerY) / 20;
+                const rotateY = -(x - centerX) / 20;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+            });
+        });
+        
+        // --- 5. CUSTOM CURSOR ---
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorOutline = document.querySelector('.cursor-outline');
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY; 
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+            cursorOutline.animate({
+                left: `${posX}px`,
+                top: `${posY}px`
+            }, { duration: 500, fill: "forwards" });
+        });
+        const interactiveElements = document.querySelectorAll('a, button, .interactive-link, [data-tilt], canvas');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursorOutline.classList.add('hovered');
+            });
+             el.addEventListener('mouseleave', () => {
+                cursorOutline.classList.remove('hovered');
+            });
+        });
+    });
+    </script>
+</body>
+</html>
